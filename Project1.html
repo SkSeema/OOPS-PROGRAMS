@@ -1,0 +1,126 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>University Search</title>
+    <!-- Bootstrap CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <!-- jQuery -->
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+</head>
+
+<body>
+    <div class="container mt-4">
+        <h1 class="text-center">All Universities in Country</h1>
+
+        <div class="row mt-4">
+            <div class="col-md-8 offset-md-2">
+                <div class="input-group">
+                    <input type="text" id="searchInput" class="form-control"
+                        placeholder="Search by country, name, state...">
+                    <button class="btn btn-primary" id="searchBtn">Search</button>
+                </div>
+            </div>
+        </div>
+
+        <div class="row mt-4">
+            <div class="col-12">
+                <div id="results"></div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        $(document).ready(function () {
+            $('#searchBtn').click(function () {
+                searchUniversities();
+            });
+            $('#searchInput').keypress(function (e) {
+                if (e.which == 13) {
+                    searchUniversities();
+                }
+            });     
+
+            function searchUniversities() {
+                var searchTerm = $('#searchInput').val().trim();
+
+                if (searchTerm == '') {
+                    alert('Please enter a search term');
+                    return;
+                }
+
+                $('#results').html('<p>Loading...</p>');
+                $.ajax({
+                    url: 'http://universities.hipolabs.com/search?name=' + searchTerm,
+                    method: 'GET',
+                    success: function (data) {
+                        displayResults(data, searchTerm);
+                    },
+                    error: function () {
+                        $('#results').html('<p class="text-danger">Error fetching data. Please try again.</p>');
+                    }
+                });
+            }
+
+            function displayResults(data, searchTerm) {
+                if (data.length == 0) {
+                    $('#results').html('<p>No results found.</p>');
+                    return;
+                }
+
+
+                var filtered = data.filter(function (uni) {
+                    var searchLower = searchTerm.toLowerCase();
+                    var name = uni.name ? uni.name.toLowerCase() : '';
+                    var country = uni.country ? uni.country.toLowerCase() : '';
+                    var state = uni['state-province'] ? uni['state-province'].toLowerCase() : '';
+                    var domains = uni.domains ? uni.domains.join(' ').toLowerCase() : '';
+                    var webPages = uni.web_pages ? uni.web_pages.join(' ').toLowerCase() : '';
+
+                    return name.includes(searchLower) ||
+                        country.includes(searchLower) ||
+                        state.includes(searchLower) ||
+                        domains.includes(searchLower) ||
+                        webPages.includes(searchLower);
+                });
+
+                if (filtered.length == 0) {
+                    $('#results').html('<p>No matching results found.</p>');
+                    return;
+                }
+
+                var html = '<table class="table table-bordered">';
+                html += '<thead><tr><th>Name</th><th>Country</th><th>State/Province</th><th>Domain</th><th>Website</th></tr></thead>';
+                html += '<tbody>';
+
+                for (var i = 0; i < filtered.length; i++) {
+                    var uni = filtered[i];
+                    html += '<tr>';
+                    html += '<td>' + (uni.name || '-') + '</td>';
+                    html += '<td>' + (uni.country || '-') + '</td>';
+                    html += '<td>' + (uni['state-province'] || '-') + '</td>';
+                    html += '<td>' + (uni.domains ? uni.domains.join(', ') : '+') + '</td>';
+                    html += '<td>';
+                    if (uni.web_pages && uni.web_pages.length > 0) {
+                        for (var j = 0; j < uni.web_pages.length; j++) {
+                            html += '<a href="' + uni.web_pages[j] + '" target="_blank">' + uni.web_pages[j] + '</a><br>';
+                        }
+                    } else {
+                        html += '+';
+                    }
+                    html += '</td>';
+                    html += '</tr>';
+                }
+
+                html += '</tbody></table>';
+                html += '<p>Total results: ' + filtered.length + '</p>';
+
+                $('#results').html(html);
+            }
+        });
+    </script>
+</body>
+
+</html>
